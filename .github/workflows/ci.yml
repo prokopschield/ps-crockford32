@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  format:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check
+
+  clippy:
+    name: clippy (${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [--all-features, --no-default-features]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --locked --all-targets ${{ matrix.features }}
+
+  test:
+    name: test (${{ matrix.toolchain }}, ${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 1.81 is the MSRV declared in Cargo.toml.
+        toolchain: [stable, "1.81"]
+        features: [--all-features, --no-default-features]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo test --locked ${{ matrix.features }}
+
+  test-release:
+    name: test (release, ${{ matrix.features }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features: [--all-features, --no-default-features]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Debug assertions and overflow checks are off here, so this covers
+      # the arithmetic and the optimized code paths that the debug runs do
+      # not.
+      - run: cargo test --locked --release ${{ matrix.features }}
+
+  test-32-bit:
+    name: test (i686)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-linux-gnu
+      - name: Install the 32-bit toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y gcc-multilib
+      # The length arithmetic differs on a 32-bit `usize`, so the whole
+      # suite runs there rather than only building.
+      - run: cargo test --locked --target i686-unknown-linux-gnu --all-features
+      - run: cargo test --locked --target i686-unknown-linux-gnu --no-default-features
+
+  build-bare-metal:
+    name: build (thumbv7em-none-eabihf)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
+      # No `std` and no allocator: the target that `no_std` support is for.
+      - run: cargo build --locked --target thumbv7em-none-eabihf --no-default-features
+
+  docs:
+    name: rustdoc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo doc --locked --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - run: cargo doc --locked --no-default-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  fuzz:
+    name: fuzz (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [roundtrip, decode_arbitrary]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: taiki-e/install-action@cargo-fuzz
+      # A smoke run, not a campaign: long-running fuzzing belongs outside
+      # the pull-request path.
+      - run: cargo fuzz run ${{ matrix.target }} -- -max_total_time=60
+        env:
+          # `-D warnings` reaches the fuzz crate's dependencies otherwise.
+          RUSTFLAGS: ""

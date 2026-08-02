@@ -1,0 +1,7 @@
+/.claude/
+/.codex
+/fuzz/artifacts/
+/fuzz/corpus/
+/fuzz/coverage/
+/fuzz/target/
+/target/
