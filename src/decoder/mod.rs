@@ -54,7 +54,8 @@ fn write_decoded(input: &[u8], output: &mut [u8]) -> usize {
 ///
 /// Characters outside the Crockford alphabet, including whitespace and
 /// hyphens, are silently skipped. Decoding is case-insensitive and
-/// accepts common misreadings: `O`/`o` as `0`, and `I`/`i`/`L`/`l` as `1`.
+/// accepts common misreadings: `O`/`o` as `0`, `I`/`i`/`L`/`l` as `1`,
+/// and `U`/`u` as `V`.
 ///
 /// Because invalid bytes are skipped rather than rejected, unboundedly
 /// many visually distinct inputs decode to the same output. Do not rely
@@ -263,7 +264,7 @@ fn validate(input: &[u8]) -> Result<usize, DecodeError> {
 /// Hyphens are skipped wherever they appear, as sanctioned by Crockford's
 /// specification, so they are the one difference this function tolerates.
 /// Decoding remains case-insensitive and accepts the ambiguous aliases
-/// `O`/`o` as `0` and `I`/`i`/`L`/`l` as `1`.
+/// `O`/`o` as `0`, `I`/`i`/`L`/`l` as `1`, and `U`/`u` as `V`.
 ///
 /// The returned vector is sized from the number of symbols in `input`
 /// rather than from its length, so hyphens leave no excess capacity.

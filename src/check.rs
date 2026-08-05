@@ -37,7 +37,9 @@ pub const CHECK_ALPHABET: [u8; 37] = {
 /// Extends [`DECODE_MAP`] with values 32-36 for `*`, `~`, `$`, `=`, and
 /// `U`/`u`. Because the base table is inherited, the ambiguous-glyph
 /// aliases apply to check symbols as well: `O`/`o` are accepted as check
-/// digit 0, and `I`/`i`/`L`/`l` as check digit 1.
+/// digit 0, and `I`/`i`/`L`/`l` as check digit 1. The one divergence is
+/// `U`/`u`: aliases for `V` (value 27) in [`DECODE_MAP`], they are
+/// overridden here to check value 36.
 ///
 /// This table is for the single trailing check symbol only. Five of its
 /// entries exceed the five bits a payload symbol carries, so decoding a
@@ -204,6 +206,9 @@ impl From<DecodeError> for CheckError {
 /// Crockford's specification designates them insignificant separators and
 /// [`try_decode`](crate::try_decode) accordingly skips them, and trailing
 /// ASCII whitespace is ignored when locating the check symbol.
+///
+/// A `U` in the body is decoded as the alias for `V`, but a trailing `U`
+/// is always read as the check symbol for value 36, never as that alias.
 ///
 /// Note the asymmetry at the end of the input: within the body, a byte
 /// outside the alphabet is reported as [`CheckError::Body`], but a

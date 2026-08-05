@@ -140,6 +140,7 @@ fn decode_accepts_ambiguous_aliases() {
     assert_eq!(canonical, via_o);
     assert_eq!(canonical, via_i);
     assert_eq!(canonical, via_l);
+    assert_eq!(decode(b"UB"), decode(b"VB"));
 }
 
 #[test]
@@ -179,9 +180,40 @@ fn all_alphabet_letters_decode() {
 }
 
 #[test]
-fn u_is_not_in_alphabet() {
-    assert_eq!(crate::DECODE_MAP[b'U' as usize], crate::INVALID);
-    assert_eq!(crate::DECODE_MAP[b'u' as usize], crate::INVALID);
+fn u_aliases_to_v() {
+    assert_eq!(crate::DECODE_MAP[b'U' as usize], 27);
+    assert_eq!(crate::DECODE_MAP[b'u' as usize], 27);
+    assert_eq!(
+        crate::DECODE_MAP[b'U' as usize],
+        crate::DECODE_MAP[b'V' as usize]
+    );
+}
+
+#[test]
+fn every_ascii_letter_decodes() {
+    for upper in b'A'..=b'Z' {
+        let value = crate::DECODE_MAP[upper as usize];
+
+        let expected = match upper {
+            b'O' => 0,
+            b'I' | b'L' => 1,
+            b'U' => 27,
+            _ => {
+                let index = crate::encoder::ALPHABET
+                    .iter()
+                    .position(|&symbol| symbol == upper)
+                    .expect("every non-excluded letter is in the alphabet");
+
+                u8::try_from(index).expect("alphabet indices fit in a u8")
+            }
+        };
+
+        assert_eq!(
+            value, expected,
+            "letter {:?} must decode to {expected}",
+            upper as char,
+        );
+    }
 }
 
 #[test]
@@ -654,9 +686,9 @@ fn sized_decode_when_bits_zero_skips_trailing_flush() {
 
 #[test]
 fn decode_rejects_check_only_symbols_in_payload() {
-    // Each of the five check-only symbols must be silently skipped, not
-    // mistaken for data, in the plain decoder.
-    for symbol in [b'*', b'~', b'$', b'=', b'U', b'u'] {
+    // Each of the four check-only symbols without an alias must be
+    // silently skipped, not mistaken for data, in the plain decoder.
+    for symbol in [b'*', b'~', b'$', b'='] {
         let mut input = b"91JPRV3F".to_vec();
         input.insert(4, symbol);
 
@@ -664,6 +696,21 @@ fn decode_rejects_check_only_symbols_in_payload() {
             decode(&input),
             b"Hello",
             "check-only symbol {:?} should be skipped in payload",
+            symbol as char,
+        );
+    }
+}
+
+#[test]
+fn decode_treats_u_as_v_in_payload() {
+    for symbol in [b'U', b'u'] {
+        let mut input = b"91JPRV3F".to_vec();
+        input[5] = symbol;
+
+        assert_eq!(
+            decode(&input),
+            b"Hello",
+            "{:?} should decode as `V` in payload",
             symbol as char,
         );
     }
@@ -957,9 +1004,14 @@ mod check {
     #[test]
     fn check_decode_map_extends_decode_map() {
         // Every byte that's valid in DECODE_MAP must decode to the same
-        // value in CHECK_DECODE_MAP. New mappings only add the five
-        // check-only symbols (and lowercase 'u').
+        // value in CHECK_DECODE_MAP, except 'U'/'u': aliases for 'V' in
+        // payloads, they are overridden to check value 36 here. New
+        // mappings only add the four remaining check-only symbols.
         for byte in 0..=255u8 {
+            if byte == b'U' || byte == b'u' {
+                continue;
+            }
+
             let plain = crate::DECODE_MAP[byte as usize];
 
             if plain != crate::INVALID {
@@ -969,6 +1021,11 @@ mod check {
                 );
             }
         }
+
+        assert_eq!(crate::DECODE_MAP[b'U' as usize], 27);
+        assert_eq!(crate::DECODE_MAP[b'u' as usize], 27);
+        assert_eq!(CHECK_DECODE_MAP[b'U' as usize], 36);
+        assert_eq!(CHECK_DECODE_MAP[b'u' as usize], 36);
     }
 
     #[test]
@@ -1014,6 +1071,20 @@ mod check {
                 break;
             }
         }
+    }
+
+    #[test]
+    fn decode_with_check_accepts_u_as_v_in_body() {
+        // [0xDA] encodes to "V8"; a body 'U' aliases to 'V', while the
+        // trailing check symbol is untouched.
+        let checked = encode_with_check(&[0xDA]);
+
+        assert_eq!(checked.as_bytes()[0], b'V');
+
+        let mut with_u = checked.into_bytes();
+        with_u[0] = b'U';
+
+        assert_eq!(decode_with_check(&with_u), Ok(vec![0xDA]));
     }
 
     #[test]
@@ -1331,7 +1402,7 @@ mod strict {
 
     #[test]
     fn try_decode_rejects_check_only_symbols() {
-        for byte in [b'*', b'~', b'$', b'=', b'U', b'u'] {
+        for byte in [b'*', b'~', b'$', b'='] {
             let mut input = b"D1MG".to_vec();
             input.insert(2, byte);
 
@@ -1350,6 +1421,8 @@ mod strict {
         assert_eq!(try_decode(b"OO"), Ok(decode(b"00")));
         assert_eq!(try_decode(b"I0"), Ok(decode(b"10")));
         assert_eq!(try_decode(b"L0"), Ok(decode(b"10")));
+        assert_eq!(try_decode(b"U8"), Ok(decode(b"V8")));
+        assert_eq!(try_decode(b"u8"), Ok(decode(b"V8")));
     }
 
     #[test]

@@ -9,9 +9,10 @@ decoding for byte slices, `no_std` compatible.
 
 The Crockford alphabet (`0123456789ABCDEFGHJKMNPQRSTVWXYZ`) excludes the
 visually ambiguous characters `I`, `L`, `O`, and `U`. Decoding is
-case-insensitive, accepts common misreadings (`O` as `0`; `I` or `L` as
-`1`), and, in the lenient functions, silently skips whitespace, hyphens,
-and other characters outside the alphabet.
+case-insensitive, accepts each excluded character as an alias for its
+lookalike (`O` as `0`; `I` or `L` as `1`; `U` as `V`), and, in the
+lenient functions, silently skips whitespace, hyphens, and other
+characters outside the alphabet.
 
 Note that this crate encodes byte slices, not integers: the final symbol
 of a partial block is padded with zero bits on the right, whereas

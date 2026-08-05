@@ -1,8 +1,9 @@
 //! Crockford Base32 encoding and decoding.
 //!
 //! The Crockford alphabet excludes the visually ambiguous characters `I`,
-//! `L`, `O`, and `U`. Decoding is case-insensitive and accepts common
-//! misreadings (e.g., `O` as `0`; `I` or `L` as `1`).
+//! `L`, `O`, and `U`. Decoding is case-insensitive and accepts each of
+//! them as an alias for its lookalike (`O` as `0`; `I` or `L` as `1`;
+//! `U` as `V`).
 //!
 //! # Byte-oriented encoding
 //!

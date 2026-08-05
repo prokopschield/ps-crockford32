@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-1 - 2026-08-05
+
+- `U` and `u` now decode as aliases for `V` in payload positions, so
+  every letter excluded from the alphabet aliases to its lookalike. A
+  trailing `U` in `decode_with_check` still means check value 36.
+
 ## 0.1.0-0 - 2026-08-02
 
 First release: byte-oriented Crockford Base32 encoding and decoding,

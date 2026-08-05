@@ -9,7 +9,8 @@ pub const INVALID: u8 = 0xff;
 /// The canonical alphabet is `0`-`9`, `A`-`H`, `J`, `K`, `M`, `N`, `P`-`T`,
 /// and `V`-`Z`. Lowercase letters are accepted as aliases for their
 /// uppercase counterparts, as are the visually ambiguous glyphs `O`/`o`
-/// (treated as `0`) and `I`/`i`/`L`/`l` (treated as `1`).
+/// (treated as `0`), `I`/`i`/`L`/`l` (treated as `1`), and `U`/`u`
+/// (treated as `V`).
 pub const DECODE_MAP: [u8; 256] = build_decode_map();
 
 const fn build_decode_map() -> [u8; 256] {
@@ -36,6 +37,9 @@ const fn build_decode_map() -> [u8; 256] {
     map[b'i' as usize] = 1;
     map[b'L' as usize] = 1;
     map[b'l' as usize] = 1;
+    // 27 is the value of `V` in the alphabet.
+    map[b'U' as usize] = 27;
+    map[b'u' as usize] = 27;
 
     map
 }
