@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
@@ -117,10 +117,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
-      - uses: taiki-e/install-action@cargo-fuzz
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
       # A smoke run, not a campaign: long-running fuzzing belongs outside
-      # the pull-request path.
-      - run: cargo fuzz run ${{ matrix.target }} -- -max_total_time=60
+      # the pull-request path. The explicit target overrides the musl
+      # triple that the prebuilt cargo-fuzz binary would default to.
+      - run: cargo fuzz run ${{ matrix.target }} --target x86_64-unknown-linux-gnu -- -max_total_time=60
         env:
           # `-D warnings` reaches the fuzz crate's dependencies otherwise.
           RUSTFLAGS: ""
