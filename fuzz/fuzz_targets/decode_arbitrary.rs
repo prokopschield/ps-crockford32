@@ -71,6 +71,7 @@ fuzz_target!(|data: &[u8]| {
             );
         }
         Err(DecodeError::Capacity(_)) => panic!("try_decode never reports a capacity error"),
+        Err(error) => panic!("try_decode reported an unexpected error: {error:?}"),
     }
 
     // The two strict decoders must reach the same verdict, and the two
