@@ -411,7 +411,7 @@ fn sized_encode_and_encode_agree_on_prefix() {
 
 #[test]
 fn decode_map_rejects_check_only_symbols() {
-    for byte in [b'*', b'~', b'$', b'='] {
+    for byte in *b"*~$=" {
         assert_eq!(
             crate::DECODE_MAP[byte as usize],
             crate::INVALID,
@@ -425,7 +425,7 @@ fn decode_map_rejects_check_only_symbols() {
 fn alphabet_excludes_all_ambiguous_letters() {
     let alphabet = crate::encoder::ALPHABET;
 
-    for excluded in [b'I', b'L', b'O', b'U', b'i', b'l', b'o', b'u'] {
+    for excluded in *b"ILOUilou" {
         assert!(
             !alphabet.contains(&excluded),
             "alphabet must not contain {:?}",
@@ -688,7 +688,7 @@ fn sized_decode_when_bits_zero_skips_trailing_flush() {
 fn decode_rejects_check_only_symbols_in_payload() {
     // Each of the four check-only symbols without an alias must be
     // silently skipped, not mistaken for data, in the plain decoder.
-    for symbol in [b'*', b'~', b'$', b'='] {
+    for symbol in *b"*~$=" {
         let mut input = b"91JPRV3F".to_vec();
         input.insert(4, symbol);
 
@@ -703,7 +703,7 @@ fn decode_rejects_check_only_symbols_in_payload() {
 
 #[test]
 fn decode_treats_u_as_v_in_payload() {
-    for symbol in [b'U', b'u'] {
+    for symbol in *b"Uu" {
         let mut input = b"91JPRV3F".to_vec();
         input[5] = symbol;
 
@@ -1402,7 +1402,7 @@ mod strict {
 
     #[test]
     fn try_decode_rejects_check_only_symbols() {
-        for byte in [b'*', b'~', b'$', b'='] {
+        for byte in *b"*~$=" {
             let mut input = b"D1MG".to_vec();
             input.insert(2, byte);
 
